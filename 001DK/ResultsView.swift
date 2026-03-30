@@ -15,6 +15,7 @@ struct ResultsView: View {
     @EnvironmentObject private var navController: NavigationController
 
     // MARK: - Computed
+
     var score: Int {
         questions.filter { question in
             if let selected = userAnswers[question.id], selected == question.correctIndex {
@@ -24,7 +25,22 @@ struct ResultsView: View {
         }.count
     }
 
-    var passed: Bool { score >= 36 }
+    var valuesQuestions: [Question] {
+        questions.filter { $0.category == "values" }
+    }
+
+    var valuesScore: Int {
+        valuesQuestions.filter { question in
+            if let selected = userAnswers[question.id], selected == question.correctIndex {
+                return true
+            }
+            return false
+        }.count
+    }
+
+    var passedOverall: Bool { score >= 36 }
+    var passedValues: Bool { valuesScore >= 4 }
+    var passed: Bool { passedOverall && passedValues }
 
     var wrongQuestions: [(question: Question, userAnswerIndex: Int?)] {
         questions.compactMap { question in
@@ -55,7 +71,7 @@ struct ResultsView: View {
                         .font(.system(size: 80, weight: .bold, design: .rounded))
                         .foregroundStyle(passed ? .green : .red)
 
-                    Text(passed ? "You Passed! 🎉" : "Not yet — keep practicing 💪")
+                    Text(passed ? "You Passed! 🎉" : "Not yet — keep practicing 😔")
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)
 
@@ -65,7 +81,7 @@ struct ResultsView: View {
                         Divider().frame(height: 40)
                         StatView(title: "Wrong", value: "\(wrongCount)", color: .red)
                         Divider().frame(height: 40)
-                        StatView(title: "Skipped", value: "\(skippedCount)", color: .orange)
+                        StatView(title: "Skipped", value: "\(skippedCount)", color: .gray)
                     }
                     .padding(.vertical, 12)
                     .background(Color(.secondarySystemBackground))
@@ -74,17 +90,49 @@ struct ResultsView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
 
-                // ── Pass requirement note ────────────────────────────
-                HStack(spacing: 8) {
-                    Image(systemName: passed ? "checkmark.seal.fill" : "info.circle.fill")
-                        .foregroundStyle(passed ? .green : .blue)
-                    Text(passed
-                         ? "You met the passing requirement of 36/45."
-                         : "You need at least 36 correct answers to pass.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                // ── Pass requirements breakdown ──────────────────────
+                VStack(spacing: 10) {
+                    RequirementRow(
+                        label: "Overall score",
+                        detail: "\(score)/45 — need 36",
+                        passed: passedOverall
+                    )
+                    RequirementRow(
+                        label: "Danish Values",
+                        detail: "\(valuesScore)/5 — need 4",
+                        passed: passedValues
+                    )
                 }
                 .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(14)
+                .padding(.horizontal, 20)
+
+                // ── Failure reason if failed ─────────────────────────
+                if !passed {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if !passedOverall {
+                            HStack(spacing: 8) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                Text("You need \(36 - score) or more correct answer\(36 - score == 1 ? "" : "s") overall.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                        if !passedValues {
+                            HStack(spacing: 8) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                Text("You need \(4 - valuesScore) or more correct Danish Values answer\(4 - valuesScore == 1 ? "" : "s").")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
 
                 // ── Review section ───────────────────────────────────
                 if wrongQuestions.isEmpty {
@@ -125,13 +173,24 @@ struct ResultsView: View {
                 Button {
                     navController.popToRoot()
                 } label: {
-                    Text("Back to Home")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.blue)
-                        .cornerRadius(14)
+                    HStack(spacing: 12) {
+                        Image(systemName: "house.fill")
+                            .font(.title2)
+                        Text("Return Home")
+                            .font(.headline)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .blue.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(18)
+                    .shadow(color: .blue.opacity(0.35), radius: 10, y: 6)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -143,30 +202,62 @@ struct ResultsView: View {
     }
 }
 
+// MARK: - Requirement Row
+struct RequirementRow: View {
+    let label: String
+    let detail: String
+    let passed: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(passed ? .green : .red)
+                .font(.title3)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(passed ? "✓ Pass" : "✗ Fail")
+                .font(.caption.bold())
+                .foregroundStyle(passed ? .green : .red)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(passed ? Color.green.opacity(0.12) : Color.red.opacity(0.12))
+                .cornerRadius(8)
+        }
+    }
+}
+
 // MARK: - Review Card
 struct ReviewCard: View {
     let index: Int
     let question: Question
     let userAnswerIndex: Int?
 
-    @State private var isExpanded = true
+    @State private var isExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // Header — always visible
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isExpanded.toggle()
                 }
             } label: {
                 HStack(alignment: .top, spacing: 12) {
-                    // Question number badge
                     Text("\(index)")
                         .font(.caption.bold())
                         .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
-                        .background(userAnswerIndex == nil ? Color.orange : Color.red)
+                        .background(userAnswerIndex == nil ? Color.gray : Color.red)
                         .clipShape(Circle())
 
                     Text(question.text)
@@ -184,13 +275,11 @@ struct ReviewCard: View {
             }
             .buttonStyle(.plain)
 
-            // Expandable detail
             if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
                         .padding(.horizontal, 14)
 
-                    // User's answer (if they gave one)
                     if let userIndex = userAnswerIndex {
                         AnswerRow(
                             label: "Your answer",
@@ -202,12 +291,11 @@ struct ReviewCard: View {
                         AnswerRow(
                             label: "Your answer",
                             text: "Not answered",
-                            color: .orange,
+                            color: .gray,
                             icon: "minus.circle.fill"
                         )
                     }
 
-                    // Correct answer
                     AnswerRow(
                         label: "Correct answer",
                         text: question.correctAnswer,
@@ -215,7 +303,6 @@ struct ReviewCard: View {
                         icon: "checkmark.circle.fill"
                     )
 
-                    // Explanation — only shown if available
                     if let explanation = question.explanation {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "lightbulb.fill")

@@ -9,7 +9,6 @@
 //  ContentView.swift
 //  borgerDk
 //
-
 import SwiftUI
 
 struct ContentView: View {
@@ -82,8 +81,8 @@ struct ContentView: View {
                                 HomeCard(
                                     title: "New Practice Test",
                                     subtitle: "45 questions · 45 minutes, just like the real exam",
-                                    icon: "clock.fill",
-                                    color: .red
+                                    icon: "scroll.fill",
+                                    color: .blue
                                 )
                             }
                             .buttonStyle(.plain)
@@ -95,7 +94,7 @@ struct ContentView: View {
                                     title: "Study by Topic",
                                     subtitle: "Learn at your own pace, no timer, immediate feedback",
                                     icon: "book.fill",
-                                    color: .blue
+                                    color: .red
                                 )
                             }
                             .buttonStyle(.plain)
@@ -107,7 +106,7 @@ struct ContentView: View {
                                     title: "My Scores",
                                     subtitle: "Review past tests and track your progress",
                                     icon: "chart.bar.fill",
-                                    color: .green
+                                    color: .yellow
                                 )
                             }
                             .buttonStyle(.plain)
