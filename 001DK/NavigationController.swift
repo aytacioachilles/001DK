@@ -16,8 +16,12 @@ enum AppRoute: Hashable {
 
 class NavigationController: ObservableObject {
     @Published var path = NavigationPath()
-    
+    @Published var testQuestions: [Question] = []
+    @Published var userAnswers: [String: Int?] = [:]
+
     func popToRoot() {
         path = NavigationPath()
+        testQuestions = []
+        userAnswers = [:]
     }
 }
