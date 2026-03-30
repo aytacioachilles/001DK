@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct PracticeTestStartView: View {
+    @EnvironmentObject private var navController: NavigationController
+    
     var body: some View {
         VStack(spacing: 40) {
             Image(systemName: "scroll.fill")
@@ -31,7 +33,9 @@ struct PracticeTestStartView: View {
             
             Spacer()
             
-            NavigationLink(destination: PracticeTestView()) {
+            Button {
+                navController.path.append(AppRoute.practiceTest)
+            } label: {
                 Text("Start New Test")
                     .font(.title2)
                     .fontWeight(.semibold)

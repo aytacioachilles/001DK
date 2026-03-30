@@ -3,7 +3,7 @@
 //  001DK
 //
 //  Created by Aytac Akyildiz on 29/03/2026.
-//
+
 
 import SwiftUI
 import Combine
@@ -76,7 +76,7 @@ struct PracticeTestView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
-                        .padding(.bottom, 100)   //PADDING BETWEEN NAVIGATION AND 2ND QUESTION
+                        .padding(.bottom, 100)
                     }
                     .tag(page)
                 }
@@ -124,9 +124,9 @@ struct PracticeTestView: View {
         
         shuffledChoicesCache = [:]
         for question in testQuestions {
-            let indices = Array(0..<question.choices.count)
-            let shuffledTexts = question.choices.shuffled()
-            shuffledChoicesCache[question.id] = zip(indices, shuffledTexts).map { ($0.0, $0.1) }
+            shuffledChoicesCache[question.id] = question.choices.indices
+                .map { (originalIndex: $0, text: question.choices[$0]) }
+                .shuffled()
         }
         
         userAnswers = [:]
@@ -142,18 +142,18 @@ struct PracticeTestView: View {
     }
     
     private func userAnswersBinding(for question: Question) -> Binding<Int?> {
-            Binding<Int?>(
-                get: { userAnswers[question.id] ?? nil },
-                set: { userAnswers[question.id] = $0 }
-            )
-        }
+        Binding<Int?>(
+            get: { userAnswers[question.id] ?? nil },
+            set: { userAnswers[question.id] = $0 }
+        )
+    }
     
     private func finishTest() {
         showResults = true
     }
 }
 
-// TimerView unchanged
+// TimerView
 struct TimerView: View {
     let timeRemaining: TimeInterval
     var body: some View {

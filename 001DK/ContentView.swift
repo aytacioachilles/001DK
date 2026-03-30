@@ -9,9 +9,10 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var questionManager = QuestionManager()
+    @StateObject private var navController = NavigationController()
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navController.path) {
             ZStack {
                 LinearGradient(
                     colors: [.blue.opacity(0.08), .red.opacity(0.06)],
@@ -21,7 +22,6 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 40) {
-                    // Header - Fixed wrapping
                     VStack(spacing: 12) {
                         Image(systemName: "flag.fill")
                             .font(.system(size: 72))
@@ -42,9 +42,10 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Main 3 Buttons
                     VStack(spacing: 24) {
-                        NavigationLink(destination: PracticeTestStartView()) {
+                        Button {
+                            navController.path.append(AppRoute.practiceTestStart)
+                        } label: {
                             MainButton(title: "New Practice Test",
                                        subtitle: "45 questions • 45 minutes",
                                        icon: "clock.fill",
@@ -69,8 +70,6 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Status
-                    // Replace the current status part with this:
                     if questionManager.isLoading {
                         ProgressView("Downloading latest questions...")
                     } else if let error = questionManager.lastError {
@@ -96,15 +95,24 @@ struct ContentView: View {
                 }
                 .navigationBarHidden(true)
             }
+            .navigationDestination(for: AppRoute.self) { route in
+                switch route {
+                case .practiceTestStart:
+                    PracticeTestStartView()
+                case .practiceTest:
+                    PracticeTestView()
+                case .results:
+                    EmptyView()
+                }
+            }
             .task {
                 await questionManager.loadQuestions()
             }
-            
         }
         .environmentObject(questionManager)
+        .environmentObject(navController)
     }
 
-// Reusable Button
     struct MainButton: View {
         let title: String
         let subtitle: String
@@ -139,10 +147,8 @@ struct ContentView: View {
             .cornerRadius(18)
             .shadow(radius: 6, y: 4)
         }
-        
     }
 }
-
-#Preview {
-    ContentView()
-}
+// #Preview {
+ //   ContentView()
+// }

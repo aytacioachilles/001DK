@@ -5,13 +5,14 @@
 //  Created by Aytac Akyildiz on 29/03/2026.
 //
 
+
 import SwiftUI
 
 struct ResultsView: View {
     let questions: [Question]
     let userAnswers: [String: Int?]
     
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var navController: NavigationController
     
     var score: Int {
         var correct = 0
@@ -50,11 +51,7 @@ struct ResultsView: View {
                     .italic()
                 
                 Button("Back to Home") {
-                    // Pop twice: from Results -> PracticeTestView -> Home
-                    dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        dismiss()
-                    }
+                    navController.popToRoot()
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 30)
@@ -62,6 +59,7 @@ struct ResultsView: View {
             .padding()
         }
         .navigationTitle("Test Results")
+        .navigationBarBackButtonHidden(true)
     }
 }
 

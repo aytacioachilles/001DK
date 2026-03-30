@@ -5,13 +5,11 @@
 //  Created by Aytac Akyildiz on 29/03/2026.
 //
 
+
 import SwiftUI
 import Combine
 
-// MARK: - Updated QuestionViewModel (B-004)
-// MARK: - QuestionViewModel (Improved for Practice Mode)
-// MARK: - Stable QuestionViewModel (Fixed shuffling issue)
-// MARK: - QuestionViewModel - Final Stable Version
+// MARK: - QuestionViewModel
 class QuestionViewModel: ObservableObject {
     
     @Published var selectedIndex: Int? = nil
@@ -31,13 +29,14 @@ class QuestionViewModel: ObservableObject {
         self.showFeedback = showFeedback
         self.answerBinding = answerBinding
         
-        // Use pre-shuffled choices if provided, otherwise shuffle once
         if let preShuffled = shuffledChoices {
             self.shuffledChoices = preShuffled
         } else {
-            let indices = Array(0..<question.choices.count)
-            let shuffledTexts = question.choices.shuffled()
-            self.shuffledChoices = zip(indices, shuffledTexts).map { ($0.0, $0.1) }
+            _ = Array(0..<question.choices.count)
+            let shuffled = question.choices.indices
+                .map { (originalIndex: $0, text: question.choices[$0]) }
+                .shuffled()
+            self.shuffledChoices = shuffled
         }
         
         if let binding = answerBinding, let saved = binding.wrappedValue {
@@ -62,18 +61,17 @@ struct QuestionView: View {
                 .fontWeight(.medium)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.bottom, 0)        // ← Reduced gap to answers
+                .padding(.bottom, 0)
             
             VStack(spacing: 10) {
-                // Inside QuestionView, replace the ForEach part with:
                 ForEach(viewModel.shuffledChoices, id: \.originalIndex) { item in
                     AnswerButton(
                         text: item.text,
                         isSelected: viewModel.selectedIndex == item.originalIndex,
                         showFeedback: viewModel.showFeedback,
-                        correctIndex: viewModel.question.correctIndex,
+                        correctIndex: viewModel.question.correctIndex,      // kept your original name
                         selectedIndex: viewModel.selectedIndex,
-                        buttonIndex: item.originalIndex
+                        buttonIndex: item.originalIndex                     // kept your original name
                     )
                     .onTapGesture {
                         viewModel.selectAnswer(at: item.originalIndex)
@@ -88,32 +86,31 @@ struct QuestionView: View {
     }
 }
 
-// MARK: - Answer Button
-// MARK: - Compact Answer Button
+// MARK: - Answer Button (Logic Fixed - UI unchanged)
 struct AnswerButton: View {
     let text: String
-        let isSelected: Bool
-        let showFeedback: Bool
-        let correctIndex: Int
-        let selectedIndex: Int?
-        let buttonIndex: Int
+    let isSelected: Bool
+    let showFeedback: Bool
+    let correctIndex: Int
+    let selectedIndex: Int?
+    let buttonIndex: Int
         
-        var body: some View {
-            HStack(alignment: .top) {
-                Text(text)
-                    .font(.body)
-                    .foregroundStyle(textColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 5)           // ← Even tighter vertical padding         // ← Reduced from 14
-            .background(backgroundColor)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(borderColor, lineWidth: 2)
+    var body: some View {
+        HStack(alignment: .top) {
+            Text(text)
+                .font(.body)
+                .foregroundStyle(textColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 5)
+        .background(backgroundColor)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(borderColor, lineWidth: 2)
         )
     }
     
@@ -145,13 +142,5 @@ struct AnswerButton: View {
             return .primary
         }
         return .primary
-    }
-    
-    private var iconName: String {
-        isCorrectAnswer ? "checkmark.circle.fill" : "xmark.circle.fill"
-    }
-    
-    private var iconColor: Color {
-        isCorrectAnswer ? .green : .red
     }
 }
