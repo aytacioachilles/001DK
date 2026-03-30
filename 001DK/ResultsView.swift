@@ -13,9 +13,11 @@ struct ResultsView: View {
     let userAnswers: [String: Int?]
 
     @EnvironmentObject private var navController: NavigationController
+    @EnvironmentObject private var scoreStore: ScoreStore
+
+    @State private var alreadySaved = false
 
     // MARK: - Computed
-
     var score: Int {
         questions.filter { question in
             if let selected = userAnswers[question.id], selected == question.correctIndex {
@@ -75,13 +77,12 @@ struct ResultsView: View {
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)
 
-                    // Stats row
                     HStack(spacing: 0) {
                         StatView(title: "Correct", value: "\(score)", color: .green)
                         Divider().frame(height: 40)
                         StatView(title: "Wrong", value: "\(wrongCount)", color: .red)
                         Divider().frame(height: 40)
-                        StatView(title: "Skipped", value: "\(skippedCount)", color: .gray)
+                        StatView(title: "Skipped", value: "\(skippedCount)", color: Color(.systemGray))
                     }
                     .padding(.vertical, 12)
                     .background(Color(.secondarySystemBackground))
@@ -199,6 +200,38 @@ struct ResultsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Test Results")
         .navigationBarBackButtonHidden(true)
+        .onAppear { saveResult() }
+    }
+
+    // MARK: - Save result
+    private func saveResult() {
+        guard !alreadySaved else { return }
+        alreadySaved = true
+
+        let wrong = wrongQuestions.map { item in
+            WrongAnswer(
+                id: item.question.id,
+                questionText: item.question.text,
+                choices: item.question.choices,
+                correctIndex: item.question.correctIndex,
+                userAnswerIndex: item.userAnswerIndex,
+                explanation: item.question.explanation,
+                category: item.question.category
+            )
+        }
+
+        let result = TestResult(
+            id: UUID(),
+            date: Date(),
+            score: score,
+            totalQuestions: questions.count,
+            valuesScore: valuesScore,
+            passedOverall: passedOverall,
+            passedValues: passedValues,
+            wrongAnswers: wrong
+        )
+
+        scoreStore.save(result: result)
     }
 }
 
@@ -257,7 +290,7 @@ struct ReviewCard: View {
                         .font(.caption.bold())
                         .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
-                        .background(userAnswerIndex == nil ? Color.gray : Color.red)
+                        .background(userAnswerIndex == nil ? Color(.systemGray) : Color.red)
                         .clipShape(Circle())
 
                     Text(question.text)
@@ -291,7 +324,7 @@ struct ReviewCard: View {
                         AnswerRow(
                             label: "Your answer",
                             text: "Not answered",
-                            color: .gray,
+                            color: Color(.systemGray),
                             icon: "minus.circle.fill"
                         )
                     }

@@ -25,7 +25,8 @@ final class PassCriteriaTests: XCTestCase {
             choices: ["Answer A", "Answer B", "Answer C"],
             correctIndex: correctIndex,
             explanation: nil,
-            category: category
+            category: category,
+            source: .real
         )
     }
 

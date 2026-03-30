@@ -14,6 +14,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var questionManager = QuestionManager()
     @StateObject private var navController = NavigationController()
+    @StateObject private var scoreStore = ScoreStore()
 
     var body: some View {
         NavigationStack(path: $navController.path) {
@@ -171,6 +172,7 @@ struct ContentView: View {
         }
         .environmentObject(questionManager)
         .environmentObject(navController)
+        .environmentObject(scoreStore)
     }
 }
 

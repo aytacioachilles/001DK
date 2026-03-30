@@ -7,28 +7,38 @@
 
 import Foundation
 
+// MARK: - Per category real/AI split
+struct CategoryConfig {
+    let realCount: Int
+    let aiCount: Int
+    var total: Int { realCount + aiCount }
+}
+
 struct TestConfiguration {
-    
-    // Configurable distribution for the first 35 questions
-    static let mainCategoryDistribution: [String: Int] = [
-        "history": 12,   // ← Change these numbers as needed
-        "culture": 10,
-        "society": 13,
-        // Add more categories here if you have them
-        // Example: "constitution": 5,
+
+    // MARK: - Main category distribution
+    // When you add AI questions to a category, adjust aiCount accordingly
+    // Example when ready: CategoryConfig(realCount: 8, aiCount: 4)
+    static let mainCategoryDistribution: [String: CategoryConfig] = [
+        "history": CategoryConfig(realCount: 12, aiCount: 0),
+        "culture": CategoryConfig(realCount: 10, aiCount: 0),
+        "society": CategoryConfig(realCount: 13, aiCount: 0),
     ]
-    
-    // Fixed parts
+
+    // Fixed slots
     static let recentEventsCount = 5
     static let valuesCount = 5
-    
-    // Total should be 45
-    static var totalQuestions: Int {
-        mainCategoryDistribution.values.reduce(0, +) + recentEventsCount + valuesCount
+
+    // MARK: - Validation
+    static var totalMainQuestions: Int {
+        mainCategoryDistribution.values.reduce(0) { $0 + $1.total }
     }
-    
-    // Validation
+
+    static var totalQuestions: Int {
+        totalMainQuestions + recentEventsCount + valuesCount
+    }
+
     static var isValid: Bool {
-        mainCategoryDistribution.values.reduce(0, +) == 35
+        totalMainQuestions == 35
     }
 }
