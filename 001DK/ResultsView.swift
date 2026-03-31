@@ -16,6 +16,7 @@ struct ResultsView: View {
     @EnvironmentObject private var scoreStore: ScoreStore
 
     @State private var alreadySaved = false
+    @State private var appeared = false
 
     // MARK: - Computed
     var score: Int {
@@ -62,62 +63,144 @@ struct ResultsView: View {
         wrongQuestions.filter { $0.userAnswerIndex != nil }.count
     }
 
+    private var difficultyColor: Color {
+        switch navController.selectedDifficulty {
+        case .easy:     return .green
+        case .standard: return .blue
+        case .hard:     return .red
+        }
+    }
+
+    private var scoreColor: Color { passed ? .green : .red }
+
     // MARK: - Body
     var body: some View {
         ScrollView(.vertical) {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
 
-                // ── Score card ───────────────────────────────────────
-                VStack(spacing: 16) {
-                    Text("\(score)/\(questions.count)")
-                        .font(.system(size: 80, weight: .bold, design: .rounded))
-                        .foregroundStyle(passed ? .green : .red)
+                // ── Hero score card ──────────────────────────────────
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(
+                            LinearGradient(
+                                colors: passed
+                                    ? [Color.green.opacity(0.85), Color.green.opacity(0.55)]
+                                    : [Color.red.opacity(0.85), Color.red.opacity(0.55)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: scoreColor.opacity(0.3), radius: 16, y: 8)
 
-                    Text(passed ? "You Passed! 🎉" : "Not yet — keep practicing 😔")
-                        .font(.title2.bold())
-                        .multilineTextAlignment(.center)
+                    VStack(spacing: 14) {
 
-                    HStack(spacing: 0) {
-                        StatView(title: "Correct", value: "\(score)", color: .green)
-                        Divider().frame(height: 40)
-                        StatView(title: "Wrong", value: "\(wrongCount)", color: .red)
-                        Divider().frame(height: 40)
-                        StatView(title: "Skipped", value: "\(skippedCount)", color: Color(.systemGray))
+                        // Pass/fail icon
+                        ZStack {
+                            Circle()
+                                .fill(.white.opacity(0.2))
+                                .frame(width: 72, height: 72)
+                            Image(systemName: passed
+                                  ? "checkmark.seal.fill"
+                                  : "xmark.seal.fill")
+                                .font(.system(size: 36))
+                                .foregroundStyle(.white)
+                        }
+                        .scaleEffect(appeared ? 1 : 0.5)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.1),
+                                   value: appeared)
+
+                        // Score number
+                        Text("\(score)/\(questions.count)")
+                            .font(.system(size: 72, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 10)
+                            .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
+
+                        // Pass/fail message
+                        Text(passed ? "You Passed! 🎉" : "Not yet — keep practicing 😔")
+                            .font(.title3.bold())
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .opacity(appeared ? 1 : 0)
+                            .animation(.easeOut(duration: 0.4).delay(0.3), value: appeared)
+
+                        // Difficulty badge
+                        HStack(spacing: 6) {
+                            Image(systemName: navController.selectedDifficulty.icon)
+                            Text(navController.selectedDifficulty.label)
+                                .font(.caption.bold())
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.white.opacity(0.2))
+                        .cornerRadius(20)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.4).delay(0.35), value: appeared)
                     }
-                    .padding(.vertical, 12)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(14)
+                    .padding(.vertical, 28)
+                    .padding(.horizontal, 20)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
 
+                // ── Stats row ────────────────────────────────────────
+                HStack(spacing: 0) {
+                    StatView(title: "Correct", value: "\(score)", color: .green)
+
+                    Rectangle()
+                        .fill(Color(.systemFill))
+                        .frame(width: 1, height: 44)
+
+                    StatView(title: "Wrong", value: "\(wrongCount)", color: .red)
+
+                    Rectangle()
+                        .fill(Color(.systemFill))
+                        .frame(width: 1, height: 44)
+
+                    StatView(title: "Skipped", value: "\(skippedCount)", color: Color(.systemGray))
+                }
+                .padding(.vertical, 16)
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.05), radius: 6, y: 3)
+                .padding(.horizontal, 20)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 10)
+                .animation(.easeOut(duration: 0.4).delay(0.4), value: appeared)
+
                 // ── Pass requirements breakdown ──────────────────────
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     RequirementRow(
                         label: "Overall score",
                         detail: "\(score)/45 — need 36",
                         passed: passedOverall
                     )
+                    Divider().padding(.horizontal, 14)
                     RequirementRow(
                         label: "Danish Values",
                         detail: "\(valuesScore)/5 — need 4",
                         passed: passedValues
                     )
                 }
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.05), radius: 6, y: 3)
                 .padding(.horizontal, 20)
-                .padding(.vertical, 14)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(14)
-                .padding(.horizontal, 20)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 10)
+                .animation(.easeOut(duration: 0.4).delay(0.45), value: appeared)
 
                 // ── Failure reason if failed ─────────────────────────
                 if !passed {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         if !passedOverall {
                             HStack(spacing: 8) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.red)
-                                Text("You need \(36 - score) or more correct answer\(36 - score == 1 ? "" : "s") overall.")
+                                Text("\(36 - score) / 45 correct answer\(36 - score == 1 ? "" : "s") needed overall.")
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
@@ -126,13 +209,18 @@ struct ResultsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.red)
-                                Text("You need \(4 - valuesScore) or more correct Danish Values answer\(4 - valuesScore == 1 ? "" : "s").")
+                                Text("\(4 - valuesScore) / 5 correct Danish Values answer\(4 - valuesScore == 1 ? "" : "s") needed.")
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
                         }
                     }
+                    .padding(14)
+                    .background(Color.red.opacity(0.06))
+                    .cornerRadius(12)
                     .padding(.horizontal, 20)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.easeOut(duration: 0.4).delay(0.5), value: appeared)
                 }
 
                 // ── Review section ───────────────────────────────────
@@ -147,7 +235,9 @@ struct ResultsView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 10)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.easeOut(duration: 0.4).delay(0.5), value: appeared)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -168,39 +258,49 @@ struct ResultsView: View {
                             .padding(.horizontal, 20)
                         }
                     }
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 10)
+                    .animation(.easeOut(duration: 0.4).delay(0.5), value: appeared)
                 }
 
-                // ── Back to Home button ──────────────────────────────
+                // ── Return Home button ───────────────────────────────
                 Button {
                     navController.popToRoot()
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         Image(systemName: "house.fill")
-                            .font(.title2)
-                        Text("Return Home")
+                        Text("Home")
                             .font(.headline)
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 18)
                     .background(
                         LinearGradient(
-                            colors: [.blue, .blue.opacity(0.85)],
+                            colors: [.blue, .blue.opacity(0.8)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(18)
-                    .shadow(color: .blue.opacity(0.35), radius: 10, y: 6)
+                    .cornerRadius(16)
+                    .shadow(color: .blue.opacity(0.3), radius: 8, y: 4)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 10)
+                .animation(.easeOut(duration: 0.4).delay(0.55), value: appeared)
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Test Results")
         .navigationBarBackButtonHidden(true)
-        .onAppear { saveResult() }
+        .onAppear {
+            saveResult()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                appeared = true
+            }
+        }
     }
 
     // MARK: - Save result
@@ -228,7 +328,8 @@ struct ResultsView: View {
             valuesScore: valuesScore,
             passedOverall: passedOverall,
             passedValues: passedValues,
-            wrongAnswers: wrong
+            wrongAnswers: wrong,
+            difficulty: navController.selectedDifficulty
         )
 
         scoreStore.save(result: result)
@@ -266,6 +367,8 @@ struct RequirementRow: View {
                 .background(passed ? Color.green.opacity(0.12) : Color.red.opacity(0.12))
                 .cornerRadius(8)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 }
 

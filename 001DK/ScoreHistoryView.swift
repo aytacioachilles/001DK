@@ -62,6 +62,15 @@ struct ScoreHistoryView: View {
             }
         }
     }
+
+    // MARK: - Difficulty color helper
+    private func difficultyColor(_ difficulty: DifficultyLevel) -> Color {
+        switch difficulty {
+        case .easy:     return .green
+        case .standard: return .blue
+        case .hard:     return .red
+        }
+    }
 }
 
 // MARK: - Score Row
@@ -70,6 +79,7 @@ struct ScoreRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
+
             // Pass/fail indicator
             ZStack {
                 Circle()
@@ -81,23 +91,44 @@ struct ScoreRow: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
+
+                // Score + pass/fail badge
                 HStack(spacing: 8) {
                     Text("\(result.score)/\(result.totalQuestions)")
                         .font(.headline)
                         .foregroundStyle(result.passed ? .green : .red)
+
                     Text(result.passed ? "Passed" : "Failed")
                         .font(.caption.bold())
                         .foregroundStyle(result.passed ? .green : .red)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(result.passed ? Color.green.opacity(0.12) : Color.red.opacity(0.12))
+                        .background(result.passed
+                                    ? Color.green.opacity(0.12)
+                                    : Color.red.opacity(0.12))
                         .cornerRadius(6)
                 }
 
-                Text(result.formattedDate)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Date + difficulty on same line
+                HStack(spacing: 8) {
+                    Text(result.formattedDate)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
+                    Text("·")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: result.difficulty.icon)
+                            .font(.caption2)
+                        Text(result.difficulty.label)
+                            .font(.caption)
+                    }
+                    .foregroundStyle(difficultyColor(result.difficulty))
+                }
+
+                // Values score
                 HStack(spacing: 4) {
                     Image(systemName: "heart.fill")
                         .font(.caption2)
@@ -111,6 +142,14 @@ struct ScoreRow: View {
             Spacer()
         }
         .padding(.vertical, 4)
+    }
+
+    private func difficultyColor(_ difficulty: DifficultyLevel) -> Color {
+        switch difficulty {
+        case .easy:     return .green
+        case .standard: return .blue
+        case .hard:     return .red
+        }
     }
 }
 
@@ -135,6 +174,18 @@ struct ScoreDetailView: View {
                     Text(result.formattedDate)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    // Difficulty badge
+                    HStack(spacing: 6) {
+                        Image(systemName: result.difficulty.icon)
+                        Text(result.difficulty.label)
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(difficultyColor(result.difficulty))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(difficultyColor(result.difficulty).opacity(0.1))
+                    .cornerRadius(20)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -196,9 +247,17 @@ struct ScoreDetailView: View {
         .navigationTitle("Test Detail")
         .navigationBarTitleDisplayMode(.inline)
     }
+
+    private func difficultyColor(_ difficulty: DifficultyLevel) -> Color {
+        switch difficulty {
+        case .easy:     return .green
+        case .standard: return .blue
+        case .hard:     return .red
+        }
+    }
 }
 
-// MARK: - Wrong Answer Card (uses WrongAnswer model, not Question)
+// MARK: - Wrong Answer Card
 struct WrongAnswerCard: View {
     let index: Int
     let wrong: WrongAnswer
@@ -218,7 +277,7 @@ struct WrongAnswerCard: View {
                         .font(.caption.bold())
                         .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
-                        .background(wrong.userAnswerIndex == nil ? Color.gray : Color.red)
+                        .background(wrong.userAnswerIndex == nil ? Color(.systemGray) : Color.red)
                         .clipShape(Circle())
 
                     Text(wrong.questionText)
@@ -251,7 +310,7 @@ struct WrongAnswerCard: View {
                         AnswerRow(
                             label: "Your answer",
                             text: "Not answered",
-                            color: .gray,
+                            color: Color(.systemGray),
                             icon: "minus.circle.fill"
                         )
                     }

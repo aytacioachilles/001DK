@@ -159,21 +159,21 @@ class QuestionManager: ObservableObject {
         Array(mainStudyQuestions.shuffled().prefix(count))
     }
 
-    // MARK: - Test Generation
-    func generateMainTestQuestions() -> [Question] {
+    func generateMainTestQuestions(difficulty: DifficultyLevel = .standard) -> [Question] {
         var selected: [Question] = []
 
-        for (category, config) in TestConfiguration.mainCategoryDistribution {
-            let realQuestions = questionsForCategory(category, source: .real)
-            let aiQuestions   = questionsForCategory(category, source: .ai)
+        let distribution = TestConfiguration.mainCategoryDistribution(for: difficulty)
+
+        for (category, config) in distribution {
+            let realQuestions    = questionsForCategory(category, source: .real)
+            let aiQuestions      = questionsForCategory(category, source: .ai)
             let unknownQuestions = questionsForCategory(category, source: .unknown)
 
             let realTaken = Array(realQuestions.shuffled().prefix(config.realCount))
             let aiTaken   = Array(aiQuestions.shuffled().prefix(config.aiCount))
 
-            // If short on either source, fill from remaining pool
             let alreadyTaken = realTaken + aiTaken
-            let shortfall = config.total - alreadyTaken.count
+            let shortfall    = config.total - alreadyTaken.count
 
             var fallback: [Question] = []
             if shortfall > 0 {
@@ -192,14 +192,14 @@ class QuestionManager: ObservableObject {
         return selected.shuffled()
     }
 
-    func createPracticeTest() -> [Question] {
+    func createPracticeTest(difficulty: DifficultyLevel = .standard) -> [Question] {
         guard TestConfiguration.isValid else {
             print("⚠️ Warning: Main category distribution does not sum to 35")
             return getMixedMainQuestions(count: 35)
         }
 
         var testQuestions: [Question] = []
-        testQuestions.append(contentsOf: generateMainTestQuestions())
+        testQuestions.append(contentsOf: generateMainTestQuestions(difficulty: difficulty))
 
         let recent = Array(recentQuestions.shuffled().prefix(TestConfiguration.recentEventsCount))
         testQuestions.append(contentsOf: recent)

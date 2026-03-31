@@ -19,7 +19,9 @@ struct PracticeTestView: View {
     @State private var isLoading = true
     @State private var showFinishConfirmation = false
     @State private var showProgressSheet = false
+    @State private var pageAppeared = false
 
+    private let totalTime: TimeInterval = 45 * 60
     private let questionsPerPage = 2
     private let timerPublisher = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -36,11 +38,19 @@ struct PracticeTestView: View {
         testQuestions.count - answeredCount
     }
 
+    private var timeProgress: Double {
+        timeRemaining / totalTime
+    }
+
+    private var isLowTime: Bool {
+        timeRemaining < 300
+    }
+
     // MARK: - Body
     var body: some View {
         ZStack {
             if isLoading {
-                ProgressView("Preparing your practice test...")
+                loadingView
             } else {
                 mainTestView
             }
@@ -61,11 +71,22 @@ struct PracticeTestView: View {
             Button("Finish Test", role: .destructive) { finishTest() }
         } message: {
             Text(unansweredCount > 0
-                ? "You still have unanswered questions. Are you sure you want to submit?"
-                : "Are you sure you want to submit your answers?")
+                 ? "You still have unanswered questions. Are you sure you want to submit?"
+                 : "Are you sure you want to submit your answers?")
         }
         .sheet(isPresented: $showProgressSheet) {
             progressSheet
+        }
+    }
+
+    // MARK: - Loading view
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.4)
+            Text("Preparing your practice test…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -73,16 +94,33 @@ struct PracticeTestView: View {
     private var mainTestView: some View {
         VStack(spacing: 0) {
 
-            // Top bar
+            // ── Timer progress bar ───────────────────────────────
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color(.systemFill))
+                        .frame(height: 3)
+
+                    Rectangle()
+                        .fill(isLowTime ? Color.red : Color.blue)
+                        .frame(width: geo.size.width * timeProgress, height: 3)
+                        .animation(.linear(duration: 1), value: timeRemaining)
+                }
+            }
+            .frame(height: 3)
+
+            // ── Top bar ──────────────────────────────────────────
             HStack(alignment: .center, spacing: 12) {
+
+                // Progress button
                 Button {
                     showProgressSheet = true
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "list.bullet.circle")
-                            .font(.system(size: 18))
+                            .font(.system(size: 16))
                         Text("\(answeredCount)/\(testQuestions.count)")
-                            .font(.subheadline.monospacedDigit())
+                            .font(.subheadline.monospacedDigit().bold())
                     }
                     .foregroundStyle(.blue)
                     .padding(.horizontal, 12)
@@ -93,65 +131,126 @@ struct PracticeTestView: View {
 
                 Spacer()
 
+                // Timer
                 TimerView(timeRemaining: timeRemaining)
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
             .padding(.bottom, 8)
 
-            // Questions
+            // ── Questions ────────────────────────────────────────
             TabView(selection: $currentPage) {
                 ForEach(0..<totalPages, id: \.self) { page in
                     let pageQuestions = getQuestionsForPage(page)
 
                     ScrollView(.vertical) {
                         VStack(spacing: 14) {
-                            ForEach(pageQuestions) { question in
+                            ForEach(Array(pageQuestions.enumerated()), id: \.element.id) { offset, question in
+                                let globalIndex = page * questionsPerPage + offset + 1
                                 QuestionView(
                                     viewModel: QuestionViewModel(
                                         question: question,
                                         showFeedback: false,
                                         answerBinding: userAnswersBinding(for: question),
-                                        shuffledChoices: shuffledChoicesCache[question.id]
+                                        shuffledChoices: shuffledChoicesCache[question.id],
+                                        questionNumber: globalIndex
                                     )
+                                )
+                                .opacity(pageAppeared ? 1 : 0)
+                                .offset(y: pageAppeared ? 0 : 20)
+                                .animation(
+                                    .easeOut(duration: 0.35).delay(Double(offset) * 0.1),
+                                    value: pageAppeared
                                 )
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.top, 4)
+                        .padding(.top, 8)
                         .padding(.bottom, 100)
                     }
                     .tag(page)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-
-            // Bottom navigation
-            HStack(spacing: 20) {
-                Button("Previous") {
-                    if currentPage > 0 { currentPage -= 1 }
+            .onChange(of: currentPage) {
+                pageAppeared = false
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation {
+                        pageAppeared = true
+                    }
                 }
-                .disabled(currentPage == 0)
-                .buttonStyle(.bordered)
-
-                Spacer()
-
-                Button("Finish Test", role: .destructive) {
-                    showFinishConfirmation = true
-                }
-                .buttonStyle(.borderedProminent)
-
-                Spacer()
-
-                Button("Next") {
-                    if currentPage < totalPages - 1 { currentPage += 1 }
-                }
-                .disabled(currentPage >= totalPages - 1)
-                .buttonStyle(.bordered)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(Color(.systemBackground))
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation { pageAppeared = true }
+                }
+            }
+
+            // ── Bottom navigation bar ────────────────────────────
+            VStack(spacing: 0) {
+                Divider()
+
+                HStack(spacing: 12) {
+
+                    // Previous
+                    Button {
+                        if currentPage > 0 { currentPage -= 1 }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.subheadline.bold())
+                            Text("Prev")
+                                .font(.subheadline.bold())
+                        }
+                        .foregroundStyle(currentPage == 0 ? Color(.systemGray3) : .blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(currentPage == 0
+                                    ? Color(.systemFill)
+                                    : Color.blue.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                    .disabled(currentPage == 0)
+
+                    // Finish
+                    Button {
+                        showFinishConfirmation = true
+                    } label: {
+                        Text("Finish")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .cornerRadius(12)
+                    }
+
+                    // Next
+                    Button {
+                        if currentPage < totalPages - 1 { currentPage += 1 }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("Next")
+                                .font(.subheadline.bold())
+                            Image(systemName: "chevron.right")
+                                .font(.subheadline.bold())
+                        }
+                        .foregroundStyle(currentPage >= totalPages - 1
+                                         ? Color(.systemGray3) : .blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(currentPage >= totalPages - 1
+                                    ? Color(.systemFill)
+                                    : Color.blue.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                    .disabled(currentPage >= totalPages - 1)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(.systemBackground))
+            }
         }
     }
 
@@ -161,7 +260,6 @@ struct PracticeTestView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
 
-                    // Summary line
                     HStack {
                         Label("\(answeredCount) answered", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
@@ -173,7 +271,6 @@ struct PracticeTestView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
 
-                    // Dot grid
                     LazyVGrid(
                         columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 9),
                         spacing: 10
@@ -192,7 +289,8 @@ struct PracticeTestView: View {
                                         .frame(width: 34, height: 34)
                                         .overlay(
                                             Circle()
-                                                .stroke(isCurrentPage ? Color.orange : Color.clear, lineWidth: 2.5)
+                                                .stroke(isCurrentPage ? Color.orange : Color.clear,
+                                                        lineWidth: 2.5)
                                         )
                                     Text("\(index + 1)")
                                         .font(.caption.bold())
@@ -203,31 +301,18 @@ struct PracticeTestView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Legend
                     HStack(spacing: 20) {
                         HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 12, height: 12)
-                            Text("Answered")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Circle().fill(Color.blue).frame(width: 12, height: 12)
+                            Text("Answered").font(.caption).foregroundStyle(.secondary)
                         }
                         HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color(.systemFill))
-                                .frame(width: 12, height: 12)
-                            Text("Skipped")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Circle().fill(Color(.systemFill)).frame(width: 12, height: 12)
+                            Text("Skipped").font(.caption).foregroundStyle(.secondary)
                         }
                         HStack(spacing: 6) {
-                            Circle()
-                                .stroke(Color.orange, lineWidth: 2)
-                                .frame(width: 12, height: 12)
-                            Text("Current page")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Circle().stroke(Color.orange, lineWidth: 2).frame(width: 12, height: 12)
+                            Text("Current page").font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -251,7 +336,8 @@ struct PracticeTestView: View {
         isLoading = true
         await questionManager.loadQuestions()
 
-        testQuestions = questionManager.createPracticeTest()
+        let difficulty = navController.selectedDifficulty
+        testQuestions = questionManager.createPracticeTest(difficulty: difficulty)
 
         shuffledChoicesCache = [:]
         for question in testQuestions {
@@ -289,14 +375,33 @@ struct PracticeTestView: View {
 // MARK: - Timer View
 struct TimerView: View {
     let timeRemaining: TimeInterval
+
+    @State private var pulse = false
+
+    private var isLowTime: Bool { timeRemaining < 300 }
+
     var body: some View {
-        Text(String(format: "%02d:%02d", Int(timeRemaining)/60, Int(timeRemaining)%60))
+        Text(String(format: "%02d:%02d",
+                    Int(timeRemaining) / 60,
+                    Int(timeRemaining) % 60))
             .font(.title3.monospacedDigit().bold())
-            .foregroundStyle(timeRemaining < 300 ? .red : .primary)
+            .foregroundStyle(isLowTime ? .red : .primary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(.ultraThinMaterial)
             .cornerRadius(12)
-            .shadow(radius: 3)
+            .shadow(
+                color: isLowTime ? Color.red.opacity(pulse ? 0.5 : 0.15) : Color.clear,
+                radius: pulse ? 10 : 4
+            )
+            .scaleEffect(isLowTime && pulse ? 1.04 : 1.0)
+            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                       value: pulse)
+            .onAppear { pulse = true }
+            .onChange(of: isLowTime) { oldValue, newValue in
+                if newValue {
+                    pulse = true
+                }
+            }
     }
 }

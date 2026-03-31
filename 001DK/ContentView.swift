@@ -5,10 +5,6 @@
 //  Created by Aytac Akyildiz on 29/03/2026.
 //
 
-//
-//  ContentView.swift
-//  borgerDk
-//
 import SwiftUI
 
 struct ContentView: View {
@@ -16,66 +12,111 @@ struct ContentView: View {
     @StateObject private var navController = NavigationController()
     @StateObject private var scoreStore = ScoreStore()
 
+    @State private var appeared = false
+    @State private var showDisclaimer = false
+    @State private var showAbout = false
+
     var body: some View {
         NavigationStack(path: $navController.path) {
             ZStack {
-                // Background
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 20) {
 
-                    // ── Header ──────────────────────────────────────────
-                    ZStack {
-                        Color.red
-                            .ignoresSafeArea(edges: .top)
+                        // ── Passport hero card ───────────────────────
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.red.opacity(0.88),
+                                            Color.red.opacity(0.6)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .shadow(color: .red.opacity(0.25), radius: 12, y: 6)
 
-                        VStack(spacing: 10) {
-                            HStack(spacing: 14) {
-                                // Danish cross flag feel
+                            HStack(spacing: 20) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.white.opacity(0.2))
-                                        .frame(width: 64, height: 64)
-                                    Image(systemName: "flag.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundStyle(.white)
+                                        .fill(.white.opacity(0.15))
+                                        .frame(width: 72, height: 90)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1.5)
+                                        )
+
+                                    VStack(spacing: 6) {
+                                        Image(systemName: "person.crop.rectangle.fill")
+                                            .font(.system(size: 28))
+                                            .foregroundStyle(.white)
+                                        Text("PASSPORT")
+                                            .font(.system(size: 7, weight: .bold))
+                                            .foregroundStyle(.white.opacity(0.9))
+                                            .tracking(1.5)
+                                        HStack(spacing: 2) {
+                                            ForEach(0..<3) { _ in
+                                                Rectangle()
+                                                    .fill(.white.opacity(0.5))
+                                                    .frame(width: 6, height: 2)
+                                            }
+                                        }
+                                    }
                                 }
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Danish Citizenship")
-                                        .font(.title2.bold())
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Your path to\nDanish citizenship")
+                                        .font(.title3.bold())
                                         .foregroundStyle(.white)
-                                    Text("Indfødsretsprøven Prep")
-                                        .font(.subheadline)
+                                        .lineSpacing(2)
+
+                                    Text("Master the Indfødsretsprøven\nwith smart practice")
+                                        .font(.footnote)
                                         .foregroundStyle(.white.opacity(0.85))
+                                        .lineSpacing(2)
+
+                                    if !questionManager.allQuestions.isEmpty {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.caption)
+                                            Text("\(questionManager.allQuestions.count) questions ready")
+                                                .font(.caption.bold())
+                                        }
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(.white.opacity(0.2))
+                                        .cornerRadius(20)
+                                    }
                                 }
 
                                 Spacer()
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 16)
-                            .padding(.bottom, 24)
+                            .padding(20)
                         }
-                    }
-                    .frame(height: 130)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 12)
+                        .animation(.easeOut(duration: 0.45).delay(0.05), value: appeared)
 
-                    // ── Body ─────────────────────────────────────────────
-                    ScrollView {
+                        // ── Section label ────────────────────────────
+                        HStack {
+                            Text("What would you like to do?")
+                                .font(.footnote.uppercaseSmallCaps())
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.45).delay(0.15), value: appeared)
+
+                        // ── Action cards ─────────────────────────────
                         VStack(spacing: 12) {
-
-                            // Section label
-                            HStack {
-                                Text("What would you like to do?")
-                                    .font(.footnote.uppercaseSmallCaps())
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 24)
-                            .padding(.bottom, 4)
-
-                            // Practice Test button
                             Button {
                                 navController.path.append(AppRoute.practiceTestStart)
                             } label: {
@@ -87,9 +128,7 @@ struct ContentView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .padding(.horizontal, 20)
 
-                            // Study by Topic
                             NavigationLink(destination: TopicListView()) {
                                 HomeCard(
                                     title: "Study by Topic",
@@ -99,56 +138,83 @@ struct ContentView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .padding(.horizontal, 20)
 
-                            // My Scores
                             NavigationLink(destination: ScoreHistoryView()) {
                                 HomeCard(
                                     title: "My Scores",
                                     subtitle: "Review past tests and track your progress",
                                     icon: "chart.bar.fill",
-                                    color: .yellow
+                                    color: .green
                                 )
                             }
                             .buttonStyle(.plain)
-                            .padding(.horizontal, 20)
 
-                            // ── Status message ───────────────────────────
-                            Group {
-                                if questionManager.isLoading {
-                                    HStack(spacing: 8) {
-                                        ProgressView()
-                                        Text("Downloading latest questions…")
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                } else if let error = questionManager.lastError {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundStyle(.red)
-                                        Text(error)
-                                            .font(.footnote)
-                                            .foregroundStyle(.red)
-                                    }
-                                } else if questionManager.usingCachedData {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "wifi.slash")
-                                            .foregroundStyle(.orange)
-                                        Text("No internet — using saved questions")
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                } else if questionManager.allQuestions.isEmpty {
-                                    Text("No questions loaded yet")
+                            Button {
+                                showDisclaimer = true
+                            } label: {
+                                HomeCard(
+                                    title: "Disclaimer",
+                                    subtitle: "Legal information, copyright & privacy notice",
+                                    icon: "doc.text.fill",
+                                    color: .gray
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                showAbout = true
+                            } label: {
+                                HomeCard(
+                                    title: "About",
+                                    subtitle: "App info, developer, version & what's new",
+                                    icon: "info.circle.fill",
+                                    color: .indigo
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 20)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 16)
+                        .animation(.easeOut(duration: 0.5).delay(0.25), value: appeared)
+
+                        // ── Status message ───────────────────────────
+                        Group {
+                            if questionManager.isLoading {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("Downloading latest questions…")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
+                            } else if let error = questionManager.lastError {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.red)
+                                    Text(error)
+                                        .font(.footnote)
+                                        .foregroundStyle(.red)
+                                }
+                            } else if questionManager.usingCachedData {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "wifi.slash")
+                                        .foregroundStyle(.orange)
+                                    Text("No internet — using saved questions")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else if questionManager.allQuestions.isEmpty {
+                                Text("No questions loaded yet")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
-                            .padding(.top, 8)
-                            .padding(.horizontal, 24)
-
-                            Spacer(minLength: 40)
                         }
+                        .padding(.top, 4)
+                        .padding(.horizontal, 24)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.5).delay(0.35), value: appeared)
+
+                        Spacer(minLength: 40)
                     }
                 }
             }
@@ -169,6 +235,17 @@ struct ContentView: View {
             .task {
                 await questionManager.loadQuestions()
             }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    appeared = true
+                }
+            }
+            .sheet(isPresented: $showDisclaimer) {
+                DisclaimerView()
+            }
+            .sheet(isPresented: $showAbout) {
+                AboutView()
+            }
         }
         .environmentObject(questionManager)
         .environmentObject(navController)
@@ -185,7 +262,6 @@ struct HomeCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Icon bubble
             Image(systemName: icon)
                 .font(.system(size: 22))
                 .foregroundStyle(color)
@@ -201,7 +277,6 @@ struct HomeCard: View {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(.primary)
-
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

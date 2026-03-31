@@ -9,9 +9,9 @@ import Foundation
 import Combine
 import SwiftUI
 
-// MARK: - Stored wrong answer (lightweight, no full Question object)
+// MARK: - Stored wrong answer
 struct WrongAnswer: Codable, Identifiable {
-    let id: String           // question id
+    let id: String
     let questionText: String
     let choices: [String]
     let correctIndex: Int
@@ -32,6 +32,7 @@ struct TestResult: Codable, Identifiable {
     let passedOverall: Bool
     let passedValues: Bool
     let wrongAnswers: [WrongAnswer]
+    let difficulty: DifficultyLevel
 
     var passed: Bool { passedOverall && passedValues }
 
@@ -49,12 +50,10 @@ class ScoreStore: ObservableObject {
 
     private let cacheKey = "savedTestResults"
 
-    init() {
-        load()
-    }
+    init() { load() }
 
     func save(result: TestResult) {
-        results.insert(result, at: 0) // most recent first
+        results.insert(result, at: 0)
         persist()
     }
 
