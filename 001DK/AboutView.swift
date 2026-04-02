@@ -41,7 +41,7 @@ struct AboutView: View {
                         }
                         .shadow(color: .red.opacity(0.3), radius: 8, y: 4)
 
-                        Text("Danish Citizenship Prep")
+                        Text("Your Path to Danish Citizenship")
                             .font(.title3.bold())
 
                         Text("Indfødsretsprøven")

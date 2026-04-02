@@ -54,6 +54,9 @@ class ScoreStore: ObservableObject {
 
     func save(result: TestResult) {
         results.insert(result, at: 0)
+        if results.count > 10 {
+               results = Array(results.prefix(10))
+           }
         persist()
     }
 
@@ -77,6 +80,6 @@ class ScoreStore: ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: cacheKey),
               let decoded = try? JSONDecoder().decode([TestResult].self, from: data)
         else { return }
-        results = decoded
+        results = Array(decoded.prefix(10))
     }
 }

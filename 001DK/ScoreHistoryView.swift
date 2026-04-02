@@ -54,13 +54,7 @@ struct ScoreHistoryView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .toolbar {
-            if !scoreStore.results.isEmpty {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-            }
-        }
+        
     }
 
     // MARK: - Difficulty color helper
