@@ -72,8 +72,8 @@ struct TestConfiguration {
     // MARK: - Base category totals (difficulty-independent)
     static let mainCategoryTotals: [String: Int] = [
         "history": 12,
-        "culture": 10,
-        "society": 13,
+        "culture": 7,
+        "society": 16,
     ]
 
     // Fixed slots
