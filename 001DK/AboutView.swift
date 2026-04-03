@@ -139,6 +139,7 @@ struct AboutView: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .frame(maxWidth: .infinity)
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("About")
             .navigationBarTitleDisplayMode(.inline)

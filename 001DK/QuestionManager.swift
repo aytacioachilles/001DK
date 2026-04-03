@@ -1,10 +1,3 @@
-//
-//  QuestionManager.swift
-//  001DK
-//
-//  Created by Aytac Akyildiz on 29/03/2026.
-//
-
 import Foundation
 import Combine
 
@@ -23,15 +16,8 @@ enum QuestionSource: String, Codable {
     case unknown
 
     init(from exam: String?) {
-        guard let exam = exam else {
-            self = .unknown
-            return
-        }
-        if exam.uppercased() == "AI" {
-            self = .ai
-        } else {
-            self = .real
-        }
+        guard let exam = exam else { self = .unknown; return }
+        self = exam.uppercased() == "AI" ? .ai : .real
     }
 }
 
@@ -46,7 +32,7 @@ struct Question: Identifiable, Equatable, Codable {
     let source: QuestionSource
 
     var correctAnswer: String { choices[correctIndex] }
-    var isAI: Bool { source == .ai }
+    var isAI: Bool   { source == .ai }
     var isReal: Bool { source == .real }
 }
 
@@ -59,68 +45,89 @@ class QuestionManager: ObservableObject {
     @Published var lastError: String?
     @Published var usingCachedData = false
 
-    private let cacheKey = "cachedQuestions"
+    private(set) var examType: ExamType
 
-    private let fileURLs: [String: String] = [
+    private var cacheKey: String {
+        "cachedQuestions_\(examType.rawValue)"
+    }
+
+    // ── URL sets per exam ──────────────────────────────────────────────────
+    private let citizenshipURLs: [String: String] = [
         "culture": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realCulture.json",
         "recent":  "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realEvents.json",
         "history": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realHistory.json",
         "society": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realPublic.json",
-        "values":  "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realValues.json"
+        "values":  "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realValues.json",
     ]
 
-    init() {}
+    private let residencyURLs: [String: String] = [
+        "culture": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realCultureB.json",
+        "history": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realHistoryB.json",
+        "society": "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realSocietyB.json",
+        "values":  "https://raw.githubusercontent.com/aytacioachilles/citizenDK/main/realValuesB.json",
+    ]
 
+    private var fileURLs: [String: String] {
+        switch examType {
+        case .citizenship: return citizenshipURLs
+        case .residency:   return residencyURLs
+        }
+    }
+
+    init(examType: ExamType = .citizenship) {
+        self.examType = examType
+    }
+
+    // ── Switch exam and reload ─────────────────────────────────────────────
+    func switchExam(to exam: ExamType) async {
+        examType = exam
+        allQuestions = []
+        await loadQuestions()
+    }
+
+    // ── Load ───────────────────────────────────────────────────────────────
     func loadQuestions() async {
         isLoading = true
         lastError = nil
-        print("🔄 Starting question load...")
 
-        if let freshQuestions = await downloadAllFiles() {
-            allQuestions = freshQuestions
-            saveToCache(questions: freshQuestions)
+        let fresh = await downloadAllFiles()
+
+        if !fresh.isEmpty {
+            allQuestions = fresh
+            saveToCache(questions: fresh)
             usingCachedData = false
-            print("✅ SUCCESS: Loaded \(freshQuestions.count) fresh questions from server")
-        } else if let cached = loadFromCache() {
+        } else if let cached = loadFromCache(), !cached.isEmpty {
             allQuestions = cached
             usingCachedData = true
-            print("⚠️ Using cached questions (\(cached.count) questions)")
         } else {
-            lastError = "Could not load any questions."
-            print("❌ FAILED: No fresh data and no cache available")
+            lastError = "Could not load questions. Please check your internet connection."
         }
 
         isLoading = false
-        print("🏁 Load process finished. Total questions: \(allQuestions.count)")
     }
 
-    private func downloadAllFiles() async -> [Question]? {
+    // ── Download — per-file failures are skipped, not fatal ───────────────
+    private func downloadAllFiles() async -> [Question] {
         var combined: [Question] = []
-        var anyFailed = false
 
         for (category, urlString) in fileURLs {
             guard let url = URL(string: urlString) else { continue }
-
             do {
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let (data, response) = try await URLSession.shared.data(from: url)
+                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                    continue
+                }
                 let rawQuestions = try JSONDecoder().decode([RawQuestion].self, from: data)
                 let converted = rawQuestions.enumerated().map { index, raw in
-                    Question.fromRaw(raw, category: category, index: index)
+                    Question.fromRaw(raw, category: category, index: index, examType: examType)
                 }
                 combined.append(contentsOf: converted)
-                print("✅ Loaded \(converted.count) questions from \(category)")
             } catch {
-                print("⚠️ Failed to load \(category): \(error.localizedDescription)")
-                anyFailed = true
+                // Skip failed files silently — cached data will cover offline use
             }
         }
 
-        if anyFailed {
-            print("⚠️ Some files failed — falling back to cache for safety")
-            return nil
-        }
-
-        return combined.isEmpty ? nil : combined
+        return combined
     }
 
     private func saveToCache(questions: [Question]) {
@@ -134,7 +141,7 @@ class QuestionManager: ObservableObject {
         return try? JSONDecoder().decode([Question].self, from: data)
     }
 
-    // MARK: - Helper methods
+    // MARK: - Helpers
     func questionsForCategory(_ category: String) -> [Question] {
         allQuestions.filter { $0.category == category }
     }
@@ -143,14 +150,8 @@ class QuestionManager: ObservableObject {
         allQuestions.filter { $0.category == category && $0.source == source }
     }
 
-    var valuesQuestions: [Question] {
-        questionsForCategory("values")
-    }
-
-    var recentQuestions: [Question] {
-        questionsForCategory("recent")
-    }
-
+    var valuesQuestions: [Question]    { questionsForCategory("values") }
+    var recentQuestions: [Question]    { questionsForCategory("recent") }
     var mainStudyQuestions: [Question] {
         allQuestions.filter { $0.category != "values" && $0.category != "recent" }
     }
@@ -159,61 +160,60 @@ class QuestionManager: ObservableObject {
         Array(mainStudyQuestions.shuffled().prefix(count))
     }
 
-    func generateMainTestQuestions(difficulty: DifficultyLevel = .standard) -> [Question] {
+    // MARK: - Test generation
+    func generateMainTestQuestions(difficulty: DifficultyLevel) -> [Question] {
         var selected: [Question] = []
-
-        let distribution = TestConfiguration.mainCategoryDistribution(for: difficulty)
+        let distribution = TestConfiguration.mainCategoryDistribution(
+            for: difficulty, exam: examType)
 
         for (category, config) in distribution {
-            let realQuestions    = questionsForCategory(category, source: .real)
-            let aiQuestions      = questionsForCategory(category, source: .ai)
-            let unknownQuestions = questionsForCategory(category, source: .unknown)
+            let real    = questionsForCategory(category, source: .real)
+            let ai      = questionsForCategory(category, source: .ai)
+            let unknown = questionsForCategory(category, source: .unknown)
 
-            let realTaken = Array(realQuestions.shuffled().prefix(config.realCount))
-            let aiTaken   = Array(aiQuestions.shuffled().prefix(config.aiCount))
-
-            let alreadyTaken = realTaken + aiTaken
-            let shortfall    = config.total - alreadyTaken.count
+            let realTaken = Array(real.shuffled().prefix(config.realCount))
+            let aiTaken   = Array(ai.shuffled().prefix(config.aiCount))
+            let taken     = realTaken + aiTaken
+            let shortfall = config.total - taken.count
 
             var fallback: [Question] = []
             if shortfall > 0 {
-                let pool = (unknownQuestions + realQuestions + aiQuestions)
-                    .filter { !alreadyTaken.contains($0) }
+                let pool = (unknown + real + ai)
+                    .filter { !taken.contains($0) }
                     .shuffled()
                 fallback = Array(pool.prefix(shortfall))
-                print("⚠️ \(category): short by \(shortfall), filled from fallback pool")
             }
 
-            selected.append(contentsOf: realTaken)
-            selected.append(contentsOf: aiTaken)
-            selected.append(contentsOf: fallback)
+            selected.append(contentsOf: realTaken + aiTaken + fallback)
         }
 
         return selected.shuffled()
     }
 
     func createPracticeTest(difficulty: DifficultyLevel = .standard) -> [Question] {
-        guard TestConfiguration.isValid else {
-            print("⚠️ Warning: Main category distribution does not sum to 35")
-            return getMixedMainQuestions(count: 35)
+        guard TestConfiguration.isValid(for: examType) else {
+            return getMixedMainQuestions(count: TestConfiguration.totalMainQuestions(for: examType))
         }
 
-        var testQuestions: [Question] = []
-        testQuestions.append(contentsOf: generateMainTestQuestions(difficulty: difficulty))
+        var test: [Question] = []
+        test.append(contentsOf: generateMainTestQuestions(difficulty: difficulty))
 
-        let recent = Array(recentQuestions.shuffled().prefix(TestConfiguration.recentEventsCount))
-        testQuestions.append(contentsOf: recent)
+        let recentCount = TestConfiguration.recentEventsCount(for: examType)
+        if recentCount > 0 {
+            test.append(contentsOf: Array(recentQuestions.shuffled().prefix(recentCount)))
+        }
 
-        let values = Array(valuesQuestions.shuffled().prefix(TestConfiguration.valuesCount))
-        testQuestions.append(contentsOf: values)
+        let valuesCount = TestConfiguration.valuesCount(for: examType)
+        test.append(contentsOf: Array(valuesQuestions.shuffled().prefix(valuesCount)))
 
-        return testQuestions
+        return test
     }
 }
 
 // MARK: - Conversion Helper
 extension Question {
-    static func fromRaw(_ raw: RawQuestion, category: String, index: Int) -> Question {
+    static func fromRaw(_ raw: RawQuestion, category: String,
+                        index: Int, examType: ExamType) -> Question {
         let optionOrder = ["A", "B", "C"]
         var choices: [String] = []
         var correctIndex = 0
@@ -221,14 +221,12 @@ extension Question {
         for (i, key) in optionOrder.enumerated() {
             if let text = raw.options[key] {
                 choices.append(text)
-                if key == raw.correct {
-                    correctIndex = i
-                }
+                if key == raw.correct { correctIndex = i }
             }
         }
 
         return Question(
-            id: "\(category)_\(index)",
+            id: "\(examType.rawValue)_\(category)_\(index)",
             text: raw.question,
             choices: choices,
             correctIndex: correctIndex,

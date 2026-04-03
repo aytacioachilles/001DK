@@ -9,7 +9,8 @@ import SwiftUI
 
 struct PracticeTestStartView: View {
     @EnvironmentObject private var navController: NavigationController
-
+    @EnvironmentObject private var examContext: ExamContext
+    
     @State private var selectedDifficulty: DifficultyLevel = .standard
 
     var body: some View {
@@ -24,7 +25,7 @@ struct PracticeTestStartView: View {
                 Text("Practice Test")
                     .font(.title2.bold())
 
-                Text("45 questions · 45 minutes")
+                Text("\(examContext.examType.questionCount) questions · \(examContext.examType.minuteCount) minutes")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -35,7 +36,7 @@ struct PracticeTestStartView: View {
             // ── Difficulty selector ──────────────────────────────
             VStack(alignment: .leading, spacing: 10) {
                 Text("Select Difficulty")
-                    .font(.footnote.uppercaseSmallCaps())
+                    .font(.subheadline.uppercaseSmallCaps().weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
 
@@ -174,3 +175,4 @@ struct DifficultyCard: View {
         }
     }
 }
+

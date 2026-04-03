@@ -2,8 +2,6 @@
 //  TestConfiguration.swift
 //  001DK
 //
-//  Created by Aytac Akyildiz on 29/03/2026.
-//
 
 import Foundation
 
@@ -39,8 +37,6 @@ enum DifficultyLevel: String, Codable, CaseIterable {
         }
     }
 
-    // Real/AI split ratio per difficulty (out of 10)
-    // e.g. easy = 10/0, standard = 7/3, hard = 5/5
     var realRatio: Double {
         switch self {
         case .easy:     return 1.0
@@ -51,7 +47,6 @@ enum DifficultyLevel: String, Codable, CaseIterable {
 
     var aiRatio: Double { 1.0 - realRatio }
 
-    /// Generates a CategoryConfig for a given total count
     func categoryConfig(totalCount: Int) -> CategoryConfig {
         let realCount = Int((Double(totalCount) * realRatio).rounded())
         let aiCount   = totalCount - realCount
@@ -69,34 +64,86 @@ struct CategoryConfig {
 // MARK: - Test Configuration
 struct TestConfiguration {
 
-    // MARK: - Base category totals (difficulty-independent)
-    static let mainCategoryTotals: [String: Int] = [
+
+    static let citizenshipMainCategoryTotals: [String: Int] = [
         "history": 12,
         "culture": 7,
         "society": 16,
     ]
+    static let citizenshipRecentEventsCount  = 5
+    static let citizenshipValuesCount        = 5
+    static let citizenshipPassThreshold      = 36
+    static let citizenshipValuesThreshold    = 4
 
-    // Fixed slots
-    static let recentEventsCount = 5
-    static let valuesCount       = 5
+   
+    static let residencyMainCategoryTotals: [String: Int] = [
+        "history": 5,
+        "culture": 5,
+        "society": 12,
+    ]
+    static let residencyRecentEventsCount  = 0   // ← was 3, no recent events category
+    static let residencyValuesCount        = 3   // ← was 2, matches citizenship
+    static let residencyPassThreshold      = 20  // ← adjust once confirmed
+    static let residencyValuesThreshold    = 0   // ← adjust once confirmed
 
-    // MARK: - Distribution for a given difficulty
-    static func mainCategoryDistribution(for difficulty: DifficultyLevel) -> [String: CategoryConfig] {
-        mainCategoryTotals.mapValues { total in
+    // MARK: - Exam-aware accessors
+    static func mainCategoryTotals(for exam: ExamType) -> [String: Int] {
+        switch exam {
+        case .citizenship: return citizenshipMainCategoryTotals
+        case .residency:   return residencyMainCategoryTotals
+        }
+    }
+
+    static func recentEventsCount(for exam: ExamType) -> Int {
+        switch exam {
+        case .citizenship: return citizenshipRecentEventsCount
+        case .residency:   return residencyRecentEventsCount
+        }
+    }
+
+    static func valuesCount(for exam: ExamType) -> Int {
+        switch exam {
+        case .citizenship: return citizenshipValuesCount
+        case .residency:   return residencyValuesCount
+        }
+    }
+
+    static func passThreshold(for exam: ExamType) -> Int {
+        switch exam {
+        case .citizenship: return citizenshipPassThreshold
+        case .residency:   return residencyPassThreshold
+        }
+    }
+
+    static func valuesThreshold(for exam: ExamType) -> Int {
+        switch exam {
+        case .citizenship: return citizenshipValuesThreshold
+        case .residency:   return residencyValuesThreshold
+        }
+    }
+
+    static func mainCategoryDistribution(for difficulty: DifficultyLevel,
+                                         exam: ExamType) -> [String: CategoryConfig] {
+        mainCategoryTotals(for: exam).mapValues { total in
             difficulty.categoryConfig(totalCount: total)
         }
     }
 
     // MARK: - Validation
-    static var totalMainQuestions: Int {
-        mainCategoryTotals.values.reduce(0, +)
+    static func totalMainQuestions(for exam: ExamType) -> Int {
+        mainCategoryTotals(for: exam).values.reduce(0, +)
     }
 
-    static var totalQuestions: Int {
-        totalMainQuestions + recentEventsCount + valuesCount
+    static func totalQuestions(for exam: ExamType) -> Int {
+        totalMainQuestions(for: exam)
+            + recentEventsCount(for: exam)
+            + valuesCount(for: exam)
     }
 
-    static var isValid: Bool {
-        totalMainQuestions == 35
+    static func isValid(for exam: ExamType) -> Bool {
+        switch exam {
+        case .citizenship: return totalMainQuestions(for: exam) == 35
+        case .residency:   return totalMainQuestions(for: exam) == 22
+        }
     }
 }

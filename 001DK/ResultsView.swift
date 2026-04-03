@@ -5,7 +5,6 @@
 //  Created by Aytac Akyildiz on 29/03/2026.
 //
 
-
 import SwiftUI
 
 struct ResultsView: View {
@@ -14,6 +13,7 @@ struct ResultsView: View {
 
     @EnvironmentObject private var navController: NavigationController
     @EnvironmentObject private var scoreStore: ScoreStore
+    @EnvironmentObject private var examContext: ExamContext
 
     @State private var alreadySaved = false
     @State private var appeared = false
@@ -41,9 +41,27 @@ struct ResultsView: View {
         }.count
     }
 
-    var passedOverall: Bool { score >= 36 }
-    var passedValues: Bool { valuesScore >= 4 }
-    var passed: Bool { passedOverall && passedValues }
+    private var passThreshold: Int {
+        TestConfiguration.passThreshold(for: examContext.examType)
+    }
+
+    private var valuesThreshold: Int {
+        TestConfiguration.valuesThreshold(for: examContext.examType)
+    }
+
+    private var valuesTotal: Int {
+        TestConfiguration.valuesCount(for: examContext.examType)
+    }
+
+    var passedOverall: Bool { score >= passThreshold }
+    var passedValues: Bool  { valuesScore >= valuesThreshold }
+
+    var passed: Bool {
+        switch examContext.examType {
+        case .citizenship: return passedOverall && passedValues
+        case .residency:   return passedOverall
+        }
+    }
 
     var wrongQuestions: [(question: Question, userAnswerIndex: Int?)] {
         questions.compactMap { question in
@@ -149,17 +167,13 @@ struct ResultsView: View {
                 // ── Stats row ────────────────────────────────────────
                 HStack(spacing: 0) {
                     StatView(title: "Correct", value: "\(score)", color: .green)
-
                     Rectangle()
                         .fill(Color(.systemFill))
                         .frame(width: 1, height: 44)
-
                     StatView(title: "Wrong", value: "\(wrongCount)", color: .red)
-
                     Rectangle()
                         .fill(Color(.systemFill))
                         .frame(width: 1, height: 44)
-
                     StatView(title: "Skipped", value: "\(skippedCount)", color: Color(.systemGray))
                 }
                 .padding(.vertical, 16)
@@ -175,15 +189,18 @@ struct ResultsView: View {
                 VStack(spacing: 0) {
                     RequirementRow(
                         label: "Overall score",
-                        detail: "\(score)/45 — need 36",
+                        detail: "\(score)/\(questions.count) — need \(passThreshold)",
                         passed: passedOverall
                     )
-                    Divider().padding(.horizontal, 14)
-                    RequirementRow(
-                        label: "Danish Values",
-                        detail: "\(valuesScore)/5 — need 4",
-                        passed: passedValues
-                    )
+                    // Values sub-threshold only applies to citizenship
+                    if examContext.examType == .citizenship {
+                        Divider().padding(.horizontal, 14)
+                        RequirementRow(
+                            label: "Danish Values",
+                            detail: "\(valuesScore)/\(valuesTotal) — need \(valuesThreshold)",
+                            passed: passedValues
+                        )
+                    }
                 }
                 .background(Color(.systemBackground))
                 .cornerRadius(16)
@@ -200,16 +217,18 @@ struct ResultsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.red)
-                                Text("\(36 - score) / 45 correct answer\(36 - score == 1 ? "" : "s") needed overall.")
+                                let needed = passThreshold - score
+                                Text("\(needed) more correct answer\(needed == 1 ? "" : "s") needed overall.")
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
                         }
-                        if !passedValues {
+                        if examContext.examType == .citizenship && !passedValues {
                             HStack(spacing: 8) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.red)
-                                Text("\(4 - valuesScore) / 5 correct Danish Values answer\(4 - valuesScore == 1 ? "" : "s") needed.")
+                                let needed = valuesThreshold - valuesScore
+                                Text("\(needed) more Danish Values answer\(needed == 1 ? "" : "s") needed.")
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
@@ -292,6 +311,7 @@ struct ResultsView: View {
                 .animation(.easeOut(duration: 0.4).delay(0.55), value: appeared)
             }
         }
+        .frame(maxWidth: .infinity)
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Test Results")
         .navigationBarBackButtonHidden(true)

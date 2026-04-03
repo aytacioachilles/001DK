@@ -2,29 +2,32 @@
 //  TopicListView.swift
 //  001DK
 //
-//  Created by Aytac Akyildiz on 29/03/2026.
-//
 
 import SwiftUI
 
 struct TopicListView: View {
+    @EnvironmentObject private var examContext: ExamContext
 
-    let topics: [(title: String, subtitle: String, topic: String, icon: String, color: Color)] = [
-        ("Culture",       "Art, music, literature, movies & traditions",                "culture", "🎭", .purple),
-        ("History",       "From great Vikings to today's modern Denmark",               "history", "⚔️", .brown),
-        ("Society",       "Government, institutions, politics, welfare & daily life",   "society", "🏛️", .blue),
-        ("Values",        "Danish values & the Grundlov",                               "values",  "❤️", .red),
-        ("Recent Events", "Events that took place in Denmark recently",                 "recent",  "📰", .orange),
+    private let allTopics: [(title: String, subtitle: String, topic: String, icon: String, color: Color, citizenshipOnly: Bool)] = [
+        ("Culture",       "Art, music, literature, movies & traditions",              "culture", "🎭", .purple, false),
+        ("History",       "From great Vikings to today's modern Denmark",             "history", "⚔️", .brown,  false),
+        ("Society",       "Government, institutions, politics, welfare & daily life", "society", "🏛️", .blue,   false),
+        ("Values",        "Danish values & the Grundlov",                             "values",  "❤️", .red,    false),
+        ("Recent Events", "Events that took place in Denmark recently",               "recent",  "📰", .orange, true),
     ]
+
+    private var visibleTopics: [(title: String, subtitle: String, topic: String, icon: String, color: Color, citizenshipOnly: Bool)] {
+        allTopics.filter { !$0.citizenshipOnly || examContext.examType == .citizenship }
+    }
 
     @State private var appeared = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                ForEach(Array(topics.enumerated()), id: \.element.topic) { index, item in
+                ForEach(Array(visibleTopics.enumerated()), id: \.element.topic) { index, item in
                     NavigationLink(destination: StudyQuestionView(topic: item.topic)) {
-                        TopicCard(item: item)
+                        TopicCard(item: (item.title, item.subtitle, item.topic, item.icon, item.color))
                     }
                     .buttonStyle(.plain)
                     .opacity(appeared ? 1 : 0)
@@ -101,4 +104,3 @@ struct TopicCard: View {
         .shadow(color: item.color.opacity(0.1), radius: 8, y: 3)
     }
 }
-

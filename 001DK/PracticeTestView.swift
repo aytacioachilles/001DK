@@ -11,17 +11,18 @@ import Combine
 struct PracticeTestView: View {
     @EnvironmentObject private var questionManager: QuestionManager
     @EnvironmentObject private var navController: NavigationController
+    @EnvironmentObject private var examContext: ExamContext
 
     @State private var testQuestions: [Question] = []
     @State private var userAnswers: [String: Int?] = [:]
     @State private var currentPage = 0
-    @State private var timeRemaining: TimeInterval = 45 * 60
+    @State private var timeRemaining: TimeInterval = 0
     @State private var isLoading = true
     @State private var showFinishConfirmation = false
     @State private var showProgressSheet = false
     @State private var pageAppeared = false
 
-    private let totalTime: TimeInterval = 45 * 60
+    private var totalTime: TimeInterval { Double(examContext.examType.minuteCount) * 60 }
     private let questionsPerPage = 2
     private let timerPublisher = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -334,7 +335,11 @@ struct PracticeTestView: View {
 
     private func startNewTest() async {
         isLoading = true
-        await questionManager.loadQuestions()
+
+        // Only load if questions aren't already available
+        if questionManager.allQuestions.isEmpty {
+            await questionManager.loadQuestions()
+        }
 
         let difficulty = navController.selectedDifficulty
         testQuestions = questionManager.createPracticeTest(difficulty: difficulty)
@@ -348,10 +353,9 @@ struct PracticeTestView: View {
 
         userAnswers = [:]
         currentPage = 0
-        timeRemaining = 45 * 60
+        timeRemaining = Double(examContext.examType.minuteCount) * 60
         isLoading = false
     }
-
     private func getQuestionsForPage(_ page: Int) -> [Question] {
         let start = page * questionsPerPage
         let end = min(start + questionsPerPage, testQuestions.count)

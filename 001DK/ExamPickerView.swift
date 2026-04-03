@@ -12,10 +12,11 @@ struct ExamPickerView: View {
     @State private var appeared = false
     @State private var selectedExam: ExamType? = nil
 
+    private let darkRed = Color(red: 0.78, green: 0.08, blue: 0.12)
+
     var body: some View {
         ZStack {
-            Color(red: 0.78, green: 0.08, blue: 0.12)
-                .ignoresSafeArea()
+            darkRed.ignoresSafeArea()
 
             VStack(spacing: 0) {
 
@@ -33,7 +34,7 @@ struct ExamPickerView: View {
 
                     Text("You can change this later from the home screen.")
                         .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 72)
@@ -66,6 +67,7 @@ struct ExamPickerView: View {
                 Spacer()
 
                 // ── Continue button ───────────────────────────────────
+                // Fix #4: restructure so foregroundStyle switches correctly
                 Button {
                     guard let exam = selectedExam else { return }
                     savedExam = exam.rawValue
@@ -75,20 +77,23 @@ struct ExamPickerView: View {
                 } label: {
                     Text(selectedExam == nil ? "Select an exam to continue" : "Continue →")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(
+                            selectedExam == nil
+                                ? Color.white.opacity(0.55)
+                                : darkRed
+                        )
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(
                             selectedExam == nil
-                                ? Color.white.opacity(0.2)
-                                : Color.white.opacity(0.95)
-                        )
-                        .foregroundStyle(
-                            selectedExam == nil
-                                ? Color.white.opacity(0.5)
-                                : Color(red: 0.78, green: 0.08, blue: 0.12)
+                                ? Color.white.opacity(0.18)
+                                : Color.white
                         )
                         .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.white.opacity(selectedExam == nil ? 0.3 : 0), lineWidth: 1)
+                        )
                 }
                 .disabled(selectedExam == nil)
                 .padding(.horizontal, 24)
@@ -111,46 +116,49 @@ struct ExamCard: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
 
-            // Icon
+            // Icon — fix #1: stronger white fill for better contrast
             ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.white.opacity(isSelected ? 0.25 : 0.12))
-                    .frame(width: 56, height: 56)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(isSelected ? 0.30 : 0.18))
+                    .frame(width: 52, height: 52)
                 Image(systemName: exam.icon)
-                    .font(.system(size: 26))
+                    .font(.system(size: 24))
                     .foregroundStyle(.white)
             }
 
-            // Text
-            VStack(alignment: .leading, spacing: 4) {
+            // Text — fix #2: smaller font + single line scaling
+            VStack(alignment: .leading, spacing: 5) {
                 Text(exam.displayName)
-                    .font(.headline)
+                    .font(.subheadline.bold())
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(exam.description)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.75))
-                HStack(spacing: 6) {
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .lineLimit(1)
+                HStack(spacing: 4) {
                     Image(systemName: "questionmark.circle")
-                        .font(.caption)
-                    Text("\(exam.questionCount) questions")
-                        .font(.caption.bold())
+                        .font(.caption2)
+                    Text("\(exam.questionCount) questions  \(exam.minuteCount) minutes" )
+                        .font(.caption2.bold())
                 }
-                .foregroundStyle(.white.opacity(0.65))
-                .padding(.top, 2)
+                .foregroundStyle(Color.white.opacity(0.75))
+                .padding(.top, 1)
             }
 
             Spacer()
 
-            // Selection indicator
+            // Selection indicator — fix #1: brighter ring when unselected
             ZStack {
                 Circle()
-                    .stroke(.white.opacity(0.4), lineWidth: 2)
+                    .stroke(Color.white.opacity(isSelected ? 0 : 0.6), lineWidth: 2)
                     .frame(width: 26, height: 26)
                 if isSelected {
                     Circle()
-                        .fill(.white)
+                        .fill(Color.white)
                         .frame(width: 26, height: 26)
                     Image(systemName: "checkmark")
                         .font(.system(size: 12, weight: .bold))
@@ -159,14 +167,18 @@ struct ExamCard: View {
             }
             .animation(.easeInOut(duration: 0.15), value: isSelected)
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.vertical, 16)
+        // fix #1: stronger card background + border contrast
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(.white.opacity(isSelected ? 0.18 : 0.08))
+                .fill(Color.white.opacity(isSelected ? 0.22 : 0.12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(.white.opacity(isSelected ? 0.6 : 0.2), lineWidth: isSelected ? 2 : 1)
+                        .stroke(
+                            Color.white.opacity(isSelected ? 0.8 : 0.4),
+                            lineWidth: isSelected ? 2 : 1
+                        )
                 )
         )
         .scaleEffect(isSelected ? 1.02 : 1.0)

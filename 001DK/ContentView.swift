@@ -2,15 +2,15 @@
 //  ContentView.swift
 //  001DK
 //
-//  Created by Aytac Akyildiz on 29/03/2026.
-//
 
 import SwiftUI
 
 struct ContentView: View {
     @StateObject private var questionManager = QuestionManager()
+    // examType injected via ExamContext environment object
     @StateObject private var navController = NavigationController()
     @StateObject private var scoreStore = ScoreStore()
+    @EnvironmentObject private var examContext: ExamContext
 
     @State private var appeared = false
     @State private var showDisclaimer = false
@@ -26,19 +26,19 @@ struct ContentView: View {
                     VStack(spacing: 20) {
 
                         // ── Passport hero card ───────────────────────
-                        ZStack {
+                        ZStack(alignment: .topTrailing) {
                             RoundedRectangle(cornerRadius: 24)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color.red.opacity(0.88),
-                                            Color.red.opacity(0.6)
+                                            examContext.examType.color.opacity(0.88),
+                                            examContext.examType.color.opacity(0.6)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .shadow(color: .red.opacity(0.25), radius: 12, y: 6)
+                                .shadow(color: examContext.examType.color.opacity(0.25), radius: 12, y: 6)
 
                             HStack(spacing: 20) {
                                 ZStack {
@@ -74,7 +74,7 @@ struct ContentView: View {
                                         .foregroundStyle(.white)
                                         .lineSpacing(2)
 
-                                    Text("Master the Indfødsretsprøven\nwith smart practice")
+                                    Text("Master \(examContext.examType.displayName)\nwith smart practice")
                                         .font(.footnote)
                                         .foregroundStyle(.white.opacity(0.85))
                                         .lineSpacing(2)
@@ -97,6 +97,11 @@ struct ContentView: View {
                                 Spacer()
                             }
                             .padding(20)
+
+                            // ── Exam switcher pill ───────────────────
+                            ExamSwitcherButton()
+                                .padding(.top, 14)
+                                .padding(.trailing, 16)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
@@ -122,7 +127,7 @@ struct ContentView: View {
                             } label: {
                                 HomeCard(
                                     title: "New Practice Test",
-                                    subtitle: "45 questions · 45 minutes, just like the real exam",
+                                    subtitle: "\(examContext.examType.questionCount) questions · \(examContext.examType.minuteCount) minutes, just like the real exam",
                                     icon: "scroll.fill",
                                     color: .blue
                                 )
@@ -233,7 +238,10 @@ struct ContentView: View {
                 }
             }
             .task {
-                await questionManager.loadQuestions()
+                await questionManager.switchExam(to: examContext.examType)
+            }
+            .onChange(of: examContext.examType) { _, newExam in
+                Task { await questionManager.switchExam(to: newExam) }
             }
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
