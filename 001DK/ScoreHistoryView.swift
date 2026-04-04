@@ -122,14 +122,16 @@ struct ScoreRow: View {
                     .foregroundStyle(difficultyColor(result.difficulty))
                 }
 
-                // Values score
-                HStack(spacing: 4) {
-                    Image(systemName: "heart.fill")
-                        .font(.caption2)
-                        .foregroundStyle(result.passedValues ? .green : .red)
-                    Text("Values: \(result.valuesScore)/5")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                // Values score — citizenship only
+                if result.examType == .citizenship {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(result.passedValues ? .green : .red)
+                        Text("Values: \(result.valuesScore)/\(TestConfiguration.valuesCount(for: result.examType))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -188,14 +190,16 @@ struct ScoreDetailView: View {
                 VStack(spacing: 10) {
                     RequirementRow(
                         label: "Overall score",
-                        detail: "\(result.score)/45 — need 36",
+                        detail: "\(result.score)/\(result.totalQuestions) — need \(TestConfiguration.passThreshold(for: result.examType))",
                         passed: result.passedOverall
                     )
-                    RequirementRow(
-                        label: "Danish Values",
-                        detail: "\(result.valuesScore)/5 — need 4",
-                        passed: result.passedValues
-                    )
+                    if result.examType == .citizenship {
+                        RequirementRow(
+                            label: "Danish Values",
+                            detail: "\(result.valuesScore)/\(TestConfiguration.valuesCount(for: result.examType)) — need \(TestConfiguration.valuesThreshold(for: result.examType))",
+                            passed: result.passedValues
+                        )
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)

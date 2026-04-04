@@ -349,7 +349,8 @@ struct ResultsView: View {
             passedOverall: passedOverall,
             passedValues: passedValues,
             wrongAnswers: wrong,
-            difficulty: navController.selectedDifficulty
+            difficulty: navController.selectedDifficulty,
+            examType: examContext.examType
         )
 
         scoreStore.save(result: result)

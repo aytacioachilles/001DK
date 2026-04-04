@@ -2,8 +2,6 @@
 //  ScoreStore.swift
 //  001DK
 //
-//  Created by Aytac Akyildiz on 30/03/2026.
-//
 
 import Foundation
 import Combine
@@ -33,8 +31,15 @@ struct TestResult: Codable, Identifiable {
     let passedValues: Bool
     let wrongAnswers: [WrongAnswer]
     let difficulty: DifficultyLevel
+    let examType: ExamType
 
-    var passed: Bool { passedOverall && passedValues }
+    // Pass logic mirrors ResultsView — residency only needs overall
+    var passed: Bool {
+        switch examType {
+        case .citizenship: return passedOverall && passedValues
+        case .residency:   return passedOverall
+        }
+    }
 
     var formattedDate: String {
         let f = DateFormatter()
@@ -55,8 +60,8 @@ class ScoreStore: ObservableObject {
     func save(result: TestResult) {
         results.insert(result, at: 0)
         if results.count > 10 {
-               results = Array(results.prefix(10))
-           }
+            results = Array(results.prefix(10))
+        }
         persist()
     }
 
