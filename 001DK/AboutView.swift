@@ -43,16 +43,18 @@ struct AboutView: View {
 
                         Text("Your Path to Danish Citizenship")
                             .font(.title3.bold())
-
+                        Text("Medborgerskabsprøven")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                         Text("Indfødsretsprøven")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-
+                        
                         // Version pill
                         HStack(spacing: 6) {
                             Image(systemName: "app.badge.fill")
                                 .font(.caption)
-                            Text("Version \(appVersion) (\(buildNumber))")
+                            Text("Version \(appVersion).\(buildNumber)")
                                 .font(.caption.bold())
                         }
                         .foregroundStyle(.secondary)
@@ -69,46 +71,46 @@ struct AboutView: View {
                             icon: "text.book.closed.fill",
                             iconColor: .blue,
                             title: "Purpose",
-                            value: "[PLACEHOLDER: Brief description of the app and its mission — e.g. 'Helping people in Denmark prepare for the citizenship test through smart, structured practice.']"
+                            value: "To pass the tests with the minimal effort possible."
                         )
                         Divider().padding(.horizontal, 14)
                         AboutRow(
                             icon: "person.fill",
                             iconColor: .indigo,
                             title: "Developer",
-                            value: "[PLACEHOLDER: Your name or company name]"
+                            value: "Anonymous"
                         )
                         Divider().padding(.horizontal, 14)
                         AboutRow(
                             icon: "building.2.fill",
                             iconColor: .purple,
                             title: "Company",
-                            value: "[PLACEHOLDER: Company name or 'Independent Developer']"
+                            value: "Stealth Start-up"
                         )
                         Divider().padding(.horizontal, 14)
                         AboutRow(
                             icon: "envelope.fill",
                             iconColor: .green,
                             title: "Contact",
-                            value: "[PLACEHOLDER: contact@yourdomain.com]"
+                            value: "contact@stealthstartup.dk"
                         )
                         Divider().padding(.horizontal, 14)
                         AboutRow(
                             icon: "globe",
                             iconColor: .blue,
                             title: "Website",
-                            value: "[PLACEHOLDER: https://yourwebsite.com]"
+                            value: "www.stealthstartup.dk"
                         )
                     }
 
                     // ── What's New ───────────────────────────────────
                     AboutSection(title: "What's New") {
                         WhatsNewRow(
-                            version: "1.0.0",
-                            date: "[RELEASE DATE]",
+                            version: "1.0.1",
+                            date: "01.04.2026",
                             items: [
                                 "Initial release",
-                                "Practice tests with 45 questions",
+                                "Practice tests with 25/45 questions",
                                 "Study by topic mode",
                                 "Score history with detailed review",
                                 "Easy / Standard / Hard difficulty levels",
@@ -120,7 +122,7 @@ struct AboutView: View {
                     // ── Acknowledgements ─────────────────────────────
                     AboutSection(title: "Acknowledgements") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("[PLACEHOLDER: Any acknowledgements, data sources, open source libraries used, or individuals you want to thank.]")
+                            Text("This app is dedicated to those who suffer tremendous pain repeatedly taking those exams. The acknowledgements are truly theirs.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .lineSpacing(4)
@@ -130,7 +132,7 @@ struct AboutView: View {
                     }
 
                     // ── Footer ───────────────────────────────────────
-                    Text("© [YEAR] [COMPANY NAME]. All rights reserved.")
+                    Text("© 2026 Stealth Start-up. All rights reserved.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

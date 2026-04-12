@@ -35,14 +35,14 @@ struct DisclaimerView: View {
                         icon: "books.vertical.fill",
                         iconColor: .blue,
                         title: "Educational Purpose",
-                        content: "This application is developed solely for educational purposes to help individuals prepare for the Danish citizenship test (Indfødsretsprøven). The content provided is intended as a study aid and does not constitute official examination material."
+                        content: "This application is developed solely for educational purposes to help individuals prepare for the Danish permanent residency test (Medborgerskabsprøven) and citizenship test (Indfødsretsprøven). The content provided is intended as a study aid and does not constitute official examination material."
                     )
 
                     DisclaimerSection(
                         icon: "c.circle.fill",
                         iconColor: .orange,
                         title: "Copyright Notice",
-                        content: "The questions included in this application are based on publicly available questions from previous years' Danish citizenship examinations. No copyright infringement is intended. All original examination materials remain the property of their respective owners. If you believe any content infringes your rights, please contact us."
+                        content: "The questions included in this application are based on publicly available questions from previous years' Danish citizenship and permanent residency examinations. No copyright infringement is intended. All original examination materials remain the property of their respective owners. If you believe any content infringes your rights, please contact us."
                     )
 
                     DisclaimerSection(
@@ -67,7 +67,7 @@ struct DisclaimerView: View {
                     )
 
                     // ── Footer ───────────────────────────────────────
-                    Text("Last updated: [RELEASE DATE]")
+                    Text("Last updated: 01.04.2026")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
